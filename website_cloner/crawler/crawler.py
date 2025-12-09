@@ -11,7 +11,7 @@ import os
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Dict, Set, List, Optional, Deque, Tuple
+from typing import Dict, Set, List, Optional, Deque, Tuple, Any
 from urllib.parse import urlparse
 
 from .renderer import PageRenderer
@@ -38,6 +38,8 @@ class CrawlResult:
     errors: List[Dict] = field(default_factory=list)
     sitemap: List[str] = field(default_factory=list)
     duration_seconds: float = 0.0
+    ui_analysis: Dict[str, Any] = field(default_factory=dict)
+    screenshots_captured: int = 0
 
 
 class WebsiteCrawler:
@@ -57,7 +59,13 @@ class WebsiteCrawler:
         respect_robots: bool = True,
         timeout: int = 30000,
         concurrency: int = 10,
-        headless: bool = True
+        headless: bool = True,
+        extract_ui: bool = False,
+        capture_screenshots: bool = False,
+        analyze_accessibility: bool = False,
+        analyze_seo: bool = False,
+        analyze_performance: bool = False,
+        viewports: List[str] = None
     ):
         """
         Initialize the website crawler.
@@ -72,6 +80,12 @@ class WebsiteCrawler:
             timeout: Page load timeout in milliseconds
             concurrency: Maximum concurrent asset downloads
             headless: Run browser in headless mode
+            extract_ui: Enable comprehensive UI extraction
+            capture_screenshots: Capture page screenshots
+            analyze_accessibility: Run accessibility analysis
+            analyze_seo: Run SEO analysis
+            analyze_performance: Run performance analysis
+            viewports: List of viewport names for screenshots
         """
         self.start_url = normalize_url(url)
         self.output_dir = os.path.abspath(output_dir)
@@ -82,6 +96,12 @@ class WebsiteCrawler:
         self.timeout = timeout
         self.concurrency = concurrency
         self.headless = headless
+        self.extract_ui = extract_ui
+        self.capture_screenshots = capture_screenshots or extract_ui
+        self.analyze_accessibility = analyze_accessibility or extract_ui
+        self.analyze_seo = analyze_seo or extract_ui
+        self.analyze_performance = analyze_performance or extract_ui
+        self.viewports = viewports
         
         # Extract domain for same-domain checking
         self.domain = get_domain(self.start_url)
@@ -99,12 +119,31 @@ class WebsiteCrawler:
         self.rewriter = LinkRewriter(self.start_url, self.output_dir)
         self.robots = RobotsHandler(self.start_url)
         
+        # Initialize UI extractor if enabled
+        self.ui_extractor = None
+        if self.extract_ui or self.capture_screenshots:
+            from ..analyzer import UIExtractor
+            self.ui_extractor = UIExtractor(
+                output_dir=self.output_dir,
+                capture_screenshots=self.capture_screenshots,
+                analyze_styles=self.extract_ui,
+                detect_components=self.extract_ui,
+                extract_colors=self.extract_ui,
+                analyze_typography=self.extract_ui,
+                check_accessibility=self.analyze_accessibility,
+                extract_seo=self.analyze_seo,
+                analyze_forms=self.extract_ui,
+                analyze_performance=self.analyze_performance,
+                viewports=self.viewports
+            )
+        
         # Tracking sets
         self._visited_urls: Set[str] = set()
         self._queued_urls: Set[str] = set()
         self._all_assets: Set[str] = set()
         self._page_data: Dict[str, Dict] = {}  # URL -> {html, local_path, assets}
         self._errors: List[Dict] = []
+        self._ui_results: Dict[str, Any] = {}  # URL -> UI extraction results
         
         # URL to local path mapping for rewriting
         self._url_mapping: Dict[str, str] = {}
@@ -154,12 +193,21 @@ class WebsiteCrawler:
         
         duration = time.time() - start_time
         
+        # Count screenshots
+        screenshots_count = 0
+        if self._ui_results:
+            for ui_result in self._ui_results.values():
+                if ui_result.screenshots and ui_result.screenshots.screenshots:
+                    screenshots_count += len(ui_result.screenshots.screenshots)
+        
         result = CrawlResult(
             pages_crawled=len(self._visited_urls),
             assets_downloaded=len(self.downloader.downloaded_assets),
             errors=self._errors,
             sitemap=list(self._visited_urls),
-            duration_seconds=duration
+            duration_seconds=duration,
+            ui_analysis=self._build_ui_summary(),
+            screenshots_captured=screenshots_count
         )
         
         print_success(
@@ -167,7 +215,68 @@ class WebsiteCrawler:
             f"{result.assets_downloaded} assets in {duration:.1f}s"
         )
         
+        if screenshots_count > 0:
+            print_info(f"Captured {screenshots_count} screenshots")
+        
+        if self._ui_results:
+            print_info(f"UI analysis completed for {len(self._ui_results)} pages")
+        
         return result
+    
+    def _build_ui_summary(self) -> Dict[str, Any]:
+        """Build a summary of UI analysis results."""
+        if not self._ui_results:
+            return {}
+        
+        summary = {
+            'pages_analyzed': len(self._ui_results),
+            'colors': set(),
+            'fonts': set(),
+            'components': {},
+            'accessibility_score': 0,
+            'seo_score': 0,
+            'performance_score': 0,
+        }
+        
+        scores_count = 0
+        
+        for url, result in self._ui_results.items():
+            # Collect colors
+            if result.colors:
+                for c in result.colors.primary_colors[:5]:
+                    summary['colors'].add(c.hex)
+            
+            # Collect fonts
+            if result.typography:
+                for f in result.typography.fonts[:5]:
+                    summary['fonts'].add(f.family)
+            
+            # Collect components
+            if result.components:
+                for comp_type, count in result.components.component_counts.items():
+                    summary['components'][comp_type] = \
+                        summary['components'].get(comp_type, 0) + count
+            
+            # Average scores
+            if result.accessibility:
+                summary['accessibility_score'] += result.accessibility.score
+                scores_count += 1
+            if result.seo:
+                summary['seo_score'] += result.seo.score
+            if result.performance:
+                summary['performance_score'] += result.performance.score
+        
+        # Convert sets to lists for JSON serialization
+        summary['colors'] = list(summary['colors'])
+        summary['fonts'] = list(summary['fonts'])
+        
+        # Calculate averages
+        if scores_count > 0:
+            summary['accessibility_score'] = round(summary['accessibility_score'] / scores_count, 1)
+            summary['seo_score'] = round(summary['seo_score'] / scores_count, 1)
+            summary['performance_score'] = round(summary['performance_score'] / scores_count, 1)
+        
+        return summary
     
     async def _crawl_pages(self) -> None:
         """Crawl all pages using breadth-first search."""
@@ -222,9 +331,13 @@ class WebsiteCrawler:
         """
         self.logger.info(f"[{len(self._visited_urls) + 1}/{self.max_pages}] Crawling: {url}")
         
+        page = None
         try:
-            # Render the page
-            html, final_url = await self.renderer.render_page(url)
+            # Use render_page_with_page if we need to capture screenshots/analyze UI
+            if self.ui_extractor:
+                html, final_url, page = await self.renderer.render_page_with_page(url)
+            else:
+                html, final_url = await self.renderer.render_page(url)
             
             if not html:
                 self._errors.append({
@@ -259,6 +372,23 @@ class WebsiteCrawler:
             # Determine local path for page
             local_path = url_to_path(url, self.output_dir)
             
+            # Run UI extraction if enabled
+            if self.ui_extractor and page:
+                try:
+                    ui_result = await self.ui_extractor.extract(page, url, html)
+                    self._ui_results[url] = ui_result
+                    
+                    # Save analysis results
+                    filename_base = self._url_to_filename(url)
+                    self.ui_extractor.save_analysis(ui_result, filename_base)
+                except Exception as e:
+                    self.logger.error(f"UI extraction failed for {url}: {e}")
+                    self._errors.append({
+                        'url': url,
+                        'error': str(e),
+                        'type': 'ui_extraction_error'
+                    })
+            
             # Store page data
             self._page_data[url] = {
                 'html': html,
@@ -280,6 +410,21 @@ class WebsiteCrawler:
                 'type': 'crawl_error'
             })
             return False
+        finally:
+            if page:
+                await page.close()
+    
+    def _url_to_filename(self, url: str) -> str:
+        """Convert URL to a safe filename."""
+        import re
+        # Remove protocol
+        filename = re.sub(r'^https?://', '', url)
+        # Remove www
+        filename = re.sub(r'^www\.', '', filename)
+        # Replace unsafe characters
+        filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+        # Limit length
+        return filename[:80]
     
     async def _download_all_assets(self) -> None:
         """Download all discovered assets."""

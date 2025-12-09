@@ -1,9 +1,10 @@
-# Website Cloner
+# Website Cloner Pro
 
-A modern, Python-based website cloning tool that creates offline copies of websites. Similar to HTTrack but built with modern technologies.
+A modern, comprehensive Python-based website cloning and UI extraction tool. Clone websites for offline viewing and extract design systems, color palettes, typography, accessibility reports, SEO metadata, and more.
 
 ## Features
 
+### Core Cloning Features
 - 🌐 **Full Website Crawling**: Crawls entire websites following internal links
 - 🎭 **JavaScript Rendering**: Uses Playwright to render dynamic content
 - 📦 **Asset Downloading**: Downloads CSS, JS, images, fonts, and media files
@@ -13,6 +14,18 @@ A modern, Python-based website cloning tool that creates offline copies of websi
 - ⚡ **Async Downloads**: Parallel asset downloading for speed
 - 🎨 **Beautiful CLI**: Colorful output with rich (optional)
 - 🖥️ **Web UI**: Browser-based interface for easy control
+
+### UI Extraction Features (NEW!)
+- 📸 **Responsive Screenshots**: Capture pages at mobile, tablet, and desktop viewports
+- 🎨 **Color Palette Extraction**: Extract colors and generate CSS custom properties
+- 🔤 **Typography Analysis**: Identify fonts, sizes, weights, and build type scales
+- 🧩 **Component Detection**: Detect UI components (nav, cards, forms, buttons, etc.)
+- 🎯 **CSS Variable Extraction**: Extract and categorize design tokens
+- ♿ **Accessibility Analysis**: WCAG compliance checking with detailed reports
+- 🔍 **SEO Analysis**: Meta tags, Open Graph, structured data extraction
+- 📝 **Form Detection**: Identify and extract form structures
+- ⚡ **Performance Analysis**: Resource counting and optimization suggestions
+- 📋 **Design System Export**: Generate CSS files with extracted design tokens
 
 ## Installation
 
@@ -68,7 +81,7 @@ python website_cloner/main.py -u https://example.com -o ./cloned
 ### Command Line Options
 
 ```
-Options:
+Basic Options:
   --url, -u          URL of website to clone (required)
   --output, -o       Output directory (default: ./cloned)
   --max-pages, -m    Maximum pages to crawl (default: 200)
@@ -80,6 +93,15 @@ Options:
   --no-headless      Show browser window (for debugging)
   --verbose, -v      Enable verbose logging
   --quiet, -q        Suppress output except errors
+
+UI Extraction Options:
+  --extract-ui       Enable comprehensive UI extraction
+  --screenshots      Capture screenshots at multiple viewport sizes
+  --analyze-accessibility  Run WCAG accessibility analysis
+  --analyze-seo      Run SEO analysis
+  --analyze-performance  Run performance analysis
+  --viewports        Comma-separated viewport sizes (default: mobile,tablet,desktop)
+  --full-analysis    Enable all analysis features
 ```
 
 ### Examples
@@ -93,6 +115,15 @@ python -m website_cloner.main --url https://example.com -o ./backup --no-robots 
 
 # Debug mode (visible browser)
 python -m website_cloner.main --url https://example.com -o ./debug --no-headless --verbose
+
+# Full UI analysis with screenshots
+python -m website_cloner.main --url https://example.com -o ./analyzed --full-analysis
+
+# Clone with specific analysis features
+python -m website_cloner.main --url https://example.com -o ./site --screenshots --analyze-accessibility
+
+# Extract design system
+python -m website_cloner.main --url https://example.com -o ./design --extract-ui --viewports mobile,desktop
 ```
 
 ## Output Structure
@@ -109,6 +140,20 @@ output/
 │   ├── images/            # Images (PNG, JPG, SVG, etc.)
 │   ├── fonts/             # Web fonts
 │   └── media/             # Video/audio files
+├── screenshots/           # (when --screenshots enabled)
+│   ├── mobile/            # Mobile viewport screenshots
+│   ├── tablet/            # Tablet viewport screenshots
+│   ├── desktop/           # Desktop viewport screenshots
+│   ├── full_page/         # Full page screenshots
+│   └── thumbnails/        # Thumbnail images
+├── analysis/              # (when --extract-ui enabled)
+│   ├── *_analysis.json    # Complete analysis data
+│   ├── *_tokens.css       # Extracted design tokens
+│   ├── *_colors.css       # Color palette CSS
+│   ├── *_typography.css   # Typography CSS
+│   ├── *_accessibility.md # Accessibility report
+│   ├── *_meta.html        # SEO meta tags
+│   └── *_performance.txt  # Performance report
 ├── sitemap.json           # List of crawled URLs
 └── errors.json            # Failed downloads (if any)
 ```
@@ -126,6 +171,18 @@ website_cloner/
 │   ├── extractor.py        # HTML parsing & asset extraction
 │   ├── downloader.py       # Async asset downloading
 │   └── rewrite.py          # Link rewriting for offline use
+├── analyzer/               # UI analysis modules
+│   ├── __init__.py
+│   ├── screenshot.py       # Responsive screenshot capture
+│   ├── styles.py           # CSS/style analysis
+│   ├── components.py       # UI component detection
+│   ├── colors.py           # Color palette extraction
+│   ├── typography.py       # Typography analysis
+│   ├── accessibility.py    # WCAG compliance checking
+│   ├── seo.py              # SEO metadata extraction
+│   ├── forms.py            # Form detection
+│   ├── performance.py      # Performance analysis
+│   └── ui_extractor.py     # Unified UI extraction
 ├── utils/
 │   ├── __init__.py
 │   ├── log.py              # Logging utilities
