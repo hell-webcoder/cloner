@@ -208,6 +208,17 @@ def _run_clone_job(app, job_id: str, url: str, output_dir: str,
 async def _run_crawl_with_progress(crawler, job, app):
     """Run the crawl and update progress periodically."""
     from ..utils.paths import create_output_structure
+    from ..crawler.crawler import CrawlResult
+    
+    def create_result():
+        """Create a CrawlResult from current crawler state."""
+        return CrawlResult(
+            pages_crawled=len(crawler._visited_urls),
+            assets_downloaded=len(crawler.downloader.downloaded_assets),
+            errors=crawler._errors,
+            sitemap=list(crawler._visited_urls),
+            duration_seconds=time.time() - job['started_at']
+        )
     
     # Create output directory
     create_output_structure(crawler.output_dir)
@@ -228,14 +239,14 @@ async def _run_crawl_with_progress(crawler, job, app):
         await _crawl_pages_with_progress(crawler, job)
         
         if job['status'] == 'cancelled':
-            return crawler._create_result()
+            return create_result()
         
         # Download assets
         job['message'] = 'Downloading assets...'
         await crawler._download_all_assets()
         
         if job['status'] == 'cancelled':
-            return crawler._create_result()
+            return create_result()
         
         # Rewrite links
         job['message'] = 'Rewriting links...'
@@ -249,17 +260,7 @@ async def _run_crawl_with_progress(crawler, job, app):
     finally:
         await crawler.renderer.stop()
     
-    # Create result object
-    from ..crawler.crawler import CrawlResult
-    result = CrawlResult(
-        pages_crawled=len(crawler._visited_urls),
-        assets_downloaded=len(crawler.downloader.downloaded_assets),
-        errors=crawler._errors,
-        sitemap=list(crawler._visited_urls),
-        duration_seconds=time.time() - job['started_at']
-    )
-    
-    return result
+    return create_result()
 
 
 async def _crawl_pages_with_progress(crawler, job):
@@ -313,4 +314,4 @@ def run_app(host: str = '0.0.0.0', port: int = 5000, debug: bool = False):
 
 
 if __name__ == '__main__':
-    run_app(debug=True)
+    run_app()
