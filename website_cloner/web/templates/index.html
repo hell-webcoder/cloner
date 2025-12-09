@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Cloner - Web UI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 Website Cloner</h1>
+            <p class="subtitle">Clone websites for offline viewing</p>
+        </header>
+
+        <main>
+            <section class="clone-form">
+                <h2>Clone a Website</h2>
+                <form id="cloneForm">
+                    <div class="form-group">
+                        <label for="url">Website URL *</label>
+                        <input type="url" id="url" name="url" placeholder="https://example.com" required>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maxPages">Max Pages</label>
+                            <input type="number" id="maxPages" name="maxPages" value="200" min="1" max="10000">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="maxDepth">Max Depth</label>
+                            <input type="number" id="maxDepth" name="maxDepth" value="10" min="1" max="100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="delay">Delay (seconds)</label>
+                            <input type="number" id="delay" name="delay" value="0.5" min="0" max="60" step="0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="outputDir">Output Directory</label>
+                        <input type="text" id="outputDir" name="outputDir" value="./cloned" placeholder="./cloned">
+                    </div>
+                    
+                    <div class="form-group checkbox">
+                        <label>
+                            <input type="checkbox" id="respectRobots" name="respectRobots" checked>
+                            Respect robots.txt rules
+                        </label>
+                    </div>
+                    
+                    <button type="submit" id="submitBtn" class="btn-primary">
+                        <span class="btn-text">Start Cloning</span>
+                        <span class="btn-loading" style="display: none;">Starting...</span>
+                    </button>
+                </form>
+            </section>
+
+            <section class="jobs-section">
+                <h2>Clone Jobs</h2>
+                <div id="jobsList" class="jobs-list">
+                    <p class="no-jobs">No clone jobs yet. Start one above!</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Website Cloner v1.0 - Use responsibly and respect website terms of service.</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let activePolls = new Map();
+
+        // Form submission
+        document.getElementById('cloneForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnLoading = submitBtn.querySelector('.btn-loading');
+            
+            // Disable button
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline';
+            
+            try {
+                const formData = {
+                    url: document.getElementById('url').value,
+                    maxPages: parseInt(document.getElementById('maxPages').value),
+                    maxDepth: parseInt(document.getElementById('maxDepth').value),
+                    delay: parseFloat(document.getElementById('delay').value),
+                    outputDir: document.getElementById('outputDir').value,
+                    respectRobots: document.getElementById('respectRobots').checked
+                };
+                
+                const response = await fetch(`${API_BASE}/api/clone`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to start clone');
+                }
+                
+                // Start polling for this job
+                startPolling(data.jobId);
+                
+                // Refresh jobs list
+                await loadJobs();
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                btnText.style.display = 'inline';
+                btnLoading.style.display = 'none';
+            }
+        });
+
+        // Poll for job status
+        function startPolling(jobId) {
+            if (activePolls.has(jobId)) {
+                return;
+            }
+            
+            const poll = async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/api/status/${jobId}`);
+                    const job = await response.json();
+                    
+                    updateJobCard(job);
+                    
+                    // Continue polling if job is still running
+                    if (job.status === 'running' || job.status === 'starting') {
+                        setTimeout(poll, 1000);
+                    } else {
+                        activePolls.delete(jobId);
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                    activePolls.delete(jobId);
+                }
+            };
+            
+            activePolls.set(jobId, true);
+            poll();
+        }
+
+        // Load all jobs
+        async function loadJobs() {
+            try {
+                const response = await fetch(`${API_BASE}/api/jobs`);
+                const data = await response.json();
+                
+                const jobsList = document.getElementById('jobsList');
+                
+                if (data.jobs.length === 0) {
+                    jobsList.innerHTML = '<p class="no-jobs">No clone jobs yet. Start one above!</p>';
+                    return;
+                }
+                
+                jobsList.innerHTML = data.jobs.map(job => createJobCard(job)).join('');
+                
+                // Start polling for active jobs
+                data.jobs.forEach(job => {
+                    if (job.status === 'running' || job.status === 'starting') {
+                        startPolling(job.id);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Failed to load jobs:', error);
+            }
+        }
+
+        // Create job card HTML
+        function createJobCard(job) {
+            const statusClass = getStatusClass(job.status);
+            const progress = job.progress || 0;
+            const duration = formatDuration(job.started_at, job.completed_at);
+            
+            return `
+                <div class="job-card" id="job-${job.id}" data-status="${job.status}">
+                    <div class="job-header">
+                        <span class="job-url">${escapeHtml(job.url)}</span>
+                        <span class="job-status ${statusClass}">${job.status}</span>
+                    </div>
+                    <div class="job-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <span class="progress-text">${progress.toFixed(0)}%</span>
+                    </div>
+                    <div class="job-details">
+                        <span>📄 Pages: ${job.pages_crawled}</span>
+                        <span>📦 Assets: ${job.assets_downloaded}</span>
+                        <span>⏱️ ${duration}</span>
+                    </div>
+                    <div class="job-message">${escapeHtml(job.message || '')}</div>
+                    <div class="job-actions">
+                        ${job.status === 'running' || job.status === 'starting' ? 
+                            `<button class="btn-cancel" onclick="cancelJob('${job.id}')">Cancel</button>` : ''}
+                        ${job.status === 'completed' ? 
+                            `<span class="output-path">📁 ${escapeHtml(job.output_dir)}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update existing job card
+        function updateJobCard(job) {
+            const existingCard = document.getElementById(`job-${job.id}`);
+            if (existingCard) {
+                const newCard = createJobCard(job);
+                existingCard.outerHTML = newCard;
+            } else {
+                // Add new card to the list
+                const jobsList = document.getElementById('jobsList');
+                const noJobs = jobsList.querySelector('.no-jobs');
+                if (noJobs) {
+                    noJobs.remove();
+                }
+                jobsList.insertAdjacentHTML('afterbegin', createJobCard(job));
+            }
+        }
+
+        // Cancel a job
+        async function cancelJob(jobId) {
+            if (!confirm('Are you sure you want to cancel this job?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/cancel/${jobId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to cancel job');
+                }
+                
+                await loadJobs();
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Helper functions
+        function getStatusClass(status) {
+            const classes = {
+                'starting': 'status-starting',
+                'running': 'status-running',
+                'completed': 'status-completed',
+                'failed': 'status-failed',
+                'cancelled': 'status-cancelled'
+            };
+            return classes[status] || '';
+        }
+
+        function formatDuration(startTime, endTime) {
+            const end = endTime || Date.now() / 1000;
+            const duration = Math.round(end - startTime);
+            
+            if (duration < 60) {
+                return `${duration}s`;
+            }
+            
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            return `${minutes}m ${seconds}s`;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initial load
+        loadJobs();
+        
+        // Refresh jobs list every 30 seconds
+        setInterval(loadJobs, 30000);
+    </script>
+</body>
+</html>
