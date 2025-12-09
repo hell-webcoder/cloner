@@ -197,7 +197,9 @@ class WebsiteCrawler:
         screenshots_count = 0
         if self._ui_results:
             for ui_result in self._ui_results.values():
-                if ui_result.screenshots and ui_result.screenshots.screenshots:
+                if (ui_result.screenshots and 
+                    hasattr(ui_result.screenshots, 'screenshots') and 
+                    ui_result.screenshots.screenshots):
                     screenshots_count += len(ui_result.screenshots.screenshots)
         
         result = CrawlResult(

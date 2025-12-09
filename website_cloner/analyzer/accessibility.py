@@ -496,7 +496,8 @@ class AccessibilityChecker:
             if style.string:
                 style_content += style.string
         
-        if 'outline:none' in style_content.lower() or 'outline: none' in style_content.lower() or 'outline:0' in style_content:
+        style_content_lower = style_content.lower()
+        if 'outline:none' in style_content_lower or 'outline: none' in style_content_lower or 'outline:0' in style_content_lower:
             result.issues.append(AccessibilityIssue(
                 rule_id="focus-outline-removed",
                 description="Focus outline may be removed in styles",

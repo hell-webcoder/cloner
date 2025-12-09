@@ -402,9 +402,9 @@ class UIExtractor:
         
         if result.screenshots:
             data['screenshots'] = {
-                'viewports': list(result.screenshots.screenshots.keys()),
-                'full_page': result.screenshots.full_page_path is not None,
-                'errors': result.screenshots.errors,
+                'viewports': list(result.screenshots.screenshots.keys()) if hasattr(result.screenshots, 'screenshots') and result.screenshots.screenshots else [],
+                'full_page': result.screenshots.full_page_path is not None if hasattr(result.screenshots, 'full_page_path') else False,
+                'errors': result.screenshots.errors if hasattr(result.screenshots, 'errors') else [],
             }
         
         return data

@@ -77,6 +77,12 @@ class ColorExtractor:
     def __init__(self):
         """Initialize the color extractor."""
         self.logger = get_logger("colors")
+        # Pre-compile named color patterns
+        self._named_color_patterns = {
+            name: re.compile(r'\b' + re.escape(name) + r'\b', re.IGNORECASE)
+            for name, hex_val in self.NAMED_COLORS.items()
+            if hex_val is not None
+        }
     
     def extract_colors(self, html: str, css_content: str = "") -> ColorPalette:
         """
@@ -223,11 +229,10 @@ class ColorExtractor:
             hex_color = self._rgb_to_hex(*rgb)
             colors.append(hex_color)
         
-        # Check named colors
-        value_lower = value.lower()
-        for name, hex_val in self.NAMED_COLORS.items():
-            if re.search(r'\b' + name + r'\b', value_lower) and hex_val:
-                colors.append(hex_val)
+        # Check named colors using pre-compiled patterns
+        for name, pattern in self._named_color_patterns.items():
+            if pattern.search(value):
+                colors.append(self.NAMED_COLORS[name])
         
         return colors
     
