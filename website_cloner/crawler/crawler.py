@@ -9,8 +9,9 @@ import asyncio
 import json
 import os
 import time
+from collections import deque
 from dataclasses import dataclass, field
-from typing import Dict, Set, List, Optional
+from typing import Dict, Set, List, Optional, Deque, Tuple
 from urllib.parse import urlparse
 
 from .renderer import PageRenderer
@@ -170,12 +171,12 @@ class WebsiteCrawler:
     
     async def _crawl_pages(self) -> None:
         """Crawl all pages using breadth-first search."""
-        # Queue: (url, depth)
-        queue: List[tuple] = [(self.start_url, 0)]
+        # Queue: (url, depth) - using deque for O(1) popleft operations
+        queue: Deque[Tuple[str, int]] = deque([(self.start_url, 0)])
         self._queued_urls.add(self.start_url)
         
         while queue and len(self._visited_urls) < self.max_pages:
-            url, depth = queue.pop(0)
+            url, depth = queue.popleft()
             
             # Skip if already visited
             if url in self._visited_urls:

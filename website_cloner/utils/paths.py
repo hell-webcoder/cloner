@@ -55,8 +55,9 @@ def normalize_url(url: str, base_url: Optional[str] = None) -> str:
         ''  # Remove fragment
     ))
     
-    # Remove trailing slash for consistency (except for root)
-    if cleaned.endswith('/') and parsed.path != '/':
+    # Remove trailing slash for consistency (except for root path)
+    # Check if the path component is not just '/'
+    if cleaned.endswith('/') and len(parsed.path) > 1:
         cleaned = cleaned.rstrip('/')
     
     return cleaned
@@ -195,7 +196,7 @@ def get_asset_path(url: str, asset_type: str, output_dir: str) -> str:
         filename += ext_map.get(asset_type, '')
     
     # Create unique filename using URL hash to avoid conflicts
-    url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+    url_hash = hashlib.sha256(url.encode()).hexdigest()[:8]
     name, ext = os.path.splitext(filename)
     unique_filename = f"{name}_{url_hash}{ext}"
     

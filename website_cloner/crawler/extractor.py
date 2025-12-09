@@ -141,13 +141,21 @@ class AssetExtractor:
         assets: ExtractedAssets
     ) -> None:
         """Extract stylesheet links."""
-        # <link rel="stylesheet">
-        for link in soup.find_all('link', rel=lambda x: x and 'stylesheet' in x):
-            href = link.get('href', '').strip()
-            if href:
-                full_url = normalize_url(href, page_url)
-                if full_url:
-                    assets.stylesheets.add(full_url)
+        # <link rel="stylesheet"> - check if 'stylesheet' is in the rel attribute list
+        for link in soup.find_all('link', rel=True):
+            rel_value = link.get('rel', [])
+            # rel can be a list or string depending on parser
+            if isinstance(rel_value, list):
+                rel_values = [v.lower() for v in rel_value]
+            else:
+                rel_values = [rel_value.lower()]
+            
+            if 'stylesheet' in rel_values:
+                href = link.get('href', '').strip()
+                if href:
+                    full_url = normalize_url(href, page_url)
+                    if full_url:
+                        assets.stylesheets.add(full_url)
         
         # <link rel="preload" as="style">
         for link in soup.find_all('link', rel='preload', attrs={'as': 'style'}):

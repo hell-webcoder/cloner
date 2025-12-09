@@ -96,7 +96,8 @@ class RobotsHandler:
         Args:
             content: robots.txt file content
         """
-        current_agents: Set[str] = set()
+        current_block_applies = False
+        in_block = False
         
         for line in content.split('\n'):
             line = line.strip()
@@ -112,24 +113,34 @@ class RobotsHandler:
                 value = value.strip()
                 
                 if directive == 'user-agent':
-                    if value == '*' or value.lower() == self.user_agent.lower():
-                        current_agents.add(value)
+                    # New user-agent starts a new block
+                    if not in_block:
+                        # First user-agent in this block
+                        in_block = True
+                        current_block_applies = (value == '*' or value.lower() == self.user_agent.lower())
                     else:
-                        current_agents.discard(value)
+                        # Additional user-agent in same block
+                        if value == '*' or value.lower() == self.user_agent.lower():
+                            current_block_applies = True
                 
-                elif directive == 'disallow' and current_agents:
-                    if value:
+                elif directive == 'disallow':
+                    if current_block_applies and value:
                         self._disallowed_patterns.add(value)
+                    # Non-user-agent directive ends the user-agent section
+                    in_block = False
                 
-                elif directive == 'allow' and current_agents:
-                    if value:
+                elif directive == 'allow':
+                    if current_block_applies and value:
                         self._allowed_patterns.add(value)
+                    in_block = False
                 
-                elif directive == 'crawl-delay' and current_agents:
-                    try:
-                        self.crawl_delay = float(value)
-                    except ValueError:
-                        pass
+                elif directive == 'crawl-delay':
+                    if current_block_applies:
+                        try:
+                            self.crawl_delay = float(value)
+                        except ValueError:
+                            pass
+                    in_block = False
                 
                 elif directive == 'sitemap':
                     self.sitemaps.append(value)
