@@ -45,19 +45,22 @@ def normalize_url(url: str, base_url: Optional[str] = None) -> str:
     # Parse and clean the URL
     parsed = urlparse(url)
     
+    # Normalize path - ensure root has /
+    path = parsed.path or '/'
+    
     # Remove fragment
     cleaned = urlunparse((
         parsed.scheme.lower(),
         parsed.netloc.lower(),
-        parsed.path or '/',
+        path,
         parsed.params,
         parsed.query,
         ''  # Remove fragment
     ))
     
-    # Remove trailing slash for consistency (except for root path)
-    # Check if the path component is not just '/'
-    if cleaned.endswith('/') and len(parsed.path) > 1:
+    # Remove trailing slash for consistency (except for root path '/')
+    # Only strip if the path has more than just the root slash
+    if path != '/' and cleaned.endswith('/'):
         cleaned = cleaned.rstrip('/')
     
     return cleaned

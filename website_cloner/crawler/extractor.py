@@ -141,15 +141,20 @@ class AssetExtractor:
         assets: ExtractedAssets
     ) -> None:
         """Extract stylesheet links."""
-        # <link rel="stylesheet"> - check if 'stylesheet' is in the rel attribute list
+        # <link rel="stylesheet"> - check if 'stylesheet' is exactly one of the rel values
+        # HTML rel attribute can have multiple space-separated values like "stylesheet preload"
         for link in soup.find_all('link', rel=True):
             rel_value = link.get('rel', [])
-            # rel can be a list or string depending on parser
+            # BeautifulSoup returns rel as a list of individual values when using lxml/html.parser
+            # e.g., <link rel="stylesheet preload"> becomes ['stylesheet', 'preload']
             if isinstance(rel_value, list):
                 rel_values = [v.lower() for v in rel_value]
             else:
-                rel_values = [rel_value.lower()]
+                # Handle edge case where rel might be a string (split on whitespace)
+                rel_values = rel_value.lower().split()
             
+            # Check for exact match of 'stylesheet' as one of the rel values
+            # This is list membership check, so 'stylesheet' != 'prestylesheet'
             if 'stylesheet' in rel_values:
                 href = link.get('href', '').strip()
                 if href:

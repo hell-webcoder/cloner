@@ -14,6 +14,7 @@ from aiohttp import ClientTimeout, ClientError
 
 from ..utils.log import get_logger
 from ..utils.paths import get_asset_path, get_asset_type, ensure_parent_dir
+from ..utils.constants import DEFAULT_USER_AGENT, DEFAULT_TIMEOUT, DEFAULT_CONCURRENCY
 
 
 class AssetDownloader:
@@ -22,15 +23,6 @@ class AssetDownloader:
     
     Handles parallel downloads with rate limiting and error handling.
     """
-    
-    # Reasonable timeout for asset downloads
-    DEFAULT_TIMEOUT = 30
-    
-    # Maximum concurrent downloads
-    DEFAULT_CONCURRENCY = 10
-    
-    # User agent for requests
-    DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     
     def __init__(
         self,

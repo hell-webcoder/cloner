@@ -97,7 +97,7 @@ class RobotsHandler:
             content: robots.txt file content
         """
         current_block_applies = False
-        in_block = False
+        reading_user_agents = True  # Track if we're still reading user-agent lines
         
         for line in content.split('\n'):
             line = line.strip()
@@ -113,36 +113,35 @@ class RobotsHandler:
                 value = value.strip()
                 
                 if directive == 'user-agent':
-                    # New user-agent starts a new block
-                    if not in_block:
-                        # First user-agent in this block
-                        in_block = True
-                        current_block_applies = (value == '*' or value.lower() == self.user_agent.lower())
-                    else:
-                        # Additional user-agent in same block
-                        if value == '*' or value.lower() == self.user_agent.lower():
-                            current_block_applies = True
+                    if not reading_user_agents:
+                        # Starting a new block after non-user-agent directives
+                        reading_user_agents = True
+                        current_block_applies = False
+                    
+                    # Check if this user-agent applies to us
+                    if value == '*' or value.lower() == self.user_agent.lower():
+                        current_block_applies = True
                 
                 elif directive == 'disallow':
+                    reading_user_agents = False
                     if current_block_applies and value:
                         self._disallowed_patterns.add(value)
-                    # Non-user-agent directive ends the user-agent section
-                    in_block = False
                 
                 elif directive == 'allow':
+                    reading_user_agents = False
                     if current_block_applies and value:
                         self._allowed_patterns.add(value)
-                    in_block = False
                 
                 elif directive == 'crawl-delay':
+                    reading_user_agents = False
                     if current_block_applies:
                         try:
                             self.crawl_delay = float(value)
                         except ValueError:
                             pass
-                    in_block = False
                 
                 elif directive == 'sitemap':
+                    # Sitemaps are global, not block-specific
                     self.sitemaps.append(value)
         
         # Also use the standard parser as backup
