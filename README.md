@@ -12,6 +12,7 @@ A modern, Python-based website cloning tool that creates offline copies of websi
 - 📊 **Sitemap Generation**: Creates sitemap.json of crawled pages
 - ⚡ **Async Downloads**: Parallel asset downloading for speed
 - 🎨 **Beautiful CLI**: Colorful output with rich (optional)
+- 🖥️ **Web UI**: Browser-based interface for easy control
 
 ## Installation
 
@@ -36,7 +37,25 @@ playwright install chromium
 
 ## Usage
 
-### Basic Usage
+### Web UI (Recommended)
+
+The easiest way to use Website Cloner is through the web interface:
+
+```bash
+# Start the web UI
+python -m website_cloner.web.run
+
+# Or specify host and port
+python -m website_cloner.web.run --host 0.0.0.0 --port 8080
+```
+
+Then open your browser at `http://localhost:5000` to access the web interface.
+
+### Command Line Interface
+
+For advanced users, the CLI is also available:
+
+#### Basic Usage
 
 ```bash
 # Clone a website
@@ -107,11 +126,17 @@ website_cloner/
 │   ├── extractor.py        # HTML parsing & asset extraction
 │   ├── downloader.py       # Async asset downloading
 │   └── rewrite.py          # Link rewriting for offline use
-└── utils/
+├── utils/
+│   ├── __init__.py
+│   ├── log.py              # Logging utilities
+│   ├── paths.py            # URL/path helpers
+│   └── robots.py           # robots.txt handling
+└── web/
     ├── __init__.py
-    ├── log.py              # Logging utilities
-    ├── paths.py            # URL/path helpers
-    └── robots.py           # robots.txt handling
+    ├── app.py              # Flask web application
+    ├── run.py              # Web UI entry point
+    ├── templates/          # HTML templates
+    └── static/             # CSS and static files
 ```
 
 ## How It Works
@@ -139,6 +164,7 @@ website_cloner/
 - **lxml**: Fast HTML/XML parser
 - **aiohttp**: Async HTTP client
 - **rich**: Beautiful terminal output (optional)
+- **flask**: Web UI framework
 
 ## Legal Notice
 
