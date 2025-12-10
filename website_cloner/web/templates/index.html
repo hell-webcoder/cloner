@@ -289,11 +289,11 @@
         });
 
         // Update full analysis if individual features change
-        featureCheckboxes.forEach(id => {
-            document.getElementById(id).addEventListener('change', () => {
+        featureCheckboxes.forEach(featureId => {
+            document.getElementById(featureId).addEventListener('change', () => {
                 const allChecked = featureCheckboxes.every(id => document.getElementById(id).checked);
                 fullAnalysisCheckbox.checked = allChecked;
-                updateFeatureCardState(id);
+                updateFeatureCardState(featureId);
             });
         });
 
@@ -651,11 +651,13 @@
                 .then(res => res.json())
                 .then(job => {
                     if (job.errors && job.errors.length > 0) {
-                        const errorList = job.errors.slice(0, 10).map(e => 
-                            `• ${e.type || 'Error'}: ${e.error || e.url || 'Unknown'}`
-                        ).join('\n');
-                        const moreErrors = job.errors.length > 10 ? `\n\n... and ${job.errors.length - 10} more errors` : '';
-                        showToast(`Errors (${job.errors.length} total):\n${errorList.substring(0, 100)}${errorList.length > 100 ? '...' : ''}`, 'error');
+                        const errorList = job.errors.slice(0, 10).map(e => {
+                            const errorType = (e && e.type) ? e.type : 'Error';
+                            const errorMsg = (e && e.error) ? e.error : ((e && e.url) ? e.url : 'Unknown');
+                            return `• ${errorType}: ${errorMsg}`;
+                        }).join('\n');
+                        const displayText = errorList.length > 100 ? errorList.substring(0, 97) + '...' : errorList;
+                        showToast(`Errors (${job.errors.length} total):\n${displayText}`, 'error');
                     }
                 })
                 .catch(err => showToast('Failed to load errors', 'error'));
