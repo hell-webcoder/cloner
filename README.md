@@ -2,6 +2,8 @@
 
 A modern, comprehensive Python-based website cloning and UI extraction tool. Clone websites for offline viewing and extract design systems, color palettes, typography, accessibility reports, SEO metadata, and more.
 
+![Website Cloner Pro UI](https://github.com/user-attachments/assets/22c29c75-7fd6-499a-9ffb-ef1e992055da)
+
 ## Features
 
 ### Core Cloning Features
@@ -13,9 +15,9 @@ A modern, comprehensive Python-based website cloning and UI extraction tool. Clo
 - 📊 **Sitemap Generation**: Creates sitemap.json of crawled pages
 - ⚡ **Async Downloads**: Parallel asset downloading for speed
 - 🎨 **Beautiful CLI**: Colorful output with rich (optional)
-- 🖥️ **Web UI**: Browser-based interface for easy control
+- 🖥️ **Modern Web UI**: Beautiful browser-based interface with dark mode support
 
-### UI Extraction Features (NEW!)
+### UI Extraction Features
 - 📸 **Responsive Screenshots**: Capture pages at mobile, tablet, and desktop viewports
 - 🎨 **Color Palette Extraction**: Extract colors and generate CSS custom properties
 - 🔤 **Typography Analysis**: Identify fonts, sizes, weights, and build type scales
@@ -27,18 +29,55 @@ A modern, comprehensive Python-based website cloning and UI extraction tool. Clo
 - ⚡ **Performance Analysis**: Resource counting and optimization suggestions
 - 📋 **Design System Export**: Generate CSS files with extracted design tokens
 
-## Installation
+## Quick Start (One-Click Setup)
 
 ### Prerequisites
 
 - Python 3.8 or higher
 - pip (Python package manager)
 
-### Install Dependencies
+### Option 1: One-Click Setup Script (Recommended)
+
+**Linux/macOS:**
+```bash
+# Clone the repository
+git clone https://github.com/hell-webcoder/cloner.git
+cd cloner
+
+# Run the one-click setup script
+chmod +x setup.sh
+./setup.sh
+```
+
+**Windows:**
+```batch
+# Clone the repository
+git clone https://github.com/hell-webcoder/cloner.git
+cd cloner
+
+# Run the setup batch file
+setup.bat
+```
+
+### Option 2: Manual Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/cloner.git
+git clone https://github.com/hell-webcoder/cloner.git
+cd cloner
+
+# Install the package with all dependencies
+pip install -e .
+
+# Install Playwright browser (required)
+playwright install chromium
+```
+
+### Option 3: Using pip (requirements.txt)
+
+```bash
+# Clone the repository
+git clone https://github.com/hell-webcoder/cloner.git
 cd cloner
 
 # Install Python dependencies
@@ -52,8 +91,17 @@ playwright install chromium
 
 ### Web UI (Recommended)
 
-The easiest way to use Website Cloner is through the web interface:
+The easiest way to use Website Cloner is through the beautiful web interface:
 
+```bash
+# Start the web UI (after installation)
+website-cloner-web
+
+# Or with custom host and port
+website-cloner-web --host 0.0.0.0 --port 8080
+```
+
+Alternative method:
 ```bash
 # Start the web UI
 python -m website_cloner.web.run
@@ -71,11 +119,11 @@ For advanced users, the CLI is also available:
 #### Basic Usage
 
 ```bash
-# Clone a website
-python -m website_cloner.main --url https://example.com --output ./cloned
+# Clone a website (after installation)
+website-cloner --url https://example.com --output ./cloned
 
-# Or use the shorthand
-python website_cloner/main.py -u https://example.com -o ./cloned
+# Or use the module directly
+python -m website_cloner.main --url https://example.com --output ./cloned
 ```
 
 ### Command Line Options
