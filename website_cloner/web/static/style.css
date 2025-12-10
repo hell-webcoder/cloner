@@ -303,6 +303,44 @@ input:focus {
     word-break: break-all;
 }
 
+/* Analysis options */
+.section-title {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin: 1.5rem 0 0.75rem 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.analysis-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.analysis-options .checkbox label {
+    font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    .analysis-options {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Job analysis scores */
+.job-analysis {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(37, 99, 235, 0.05);
+    border-radius: 6px;
+}
+
 /* Footer */
 footer {
     text-align: center;

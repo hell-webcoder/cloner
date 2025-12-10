@@ -140,6 +140,82 @@ class PageRenderer:
             if page:
                 await page.close()
     
+    async def render_page_with_page(
+        self,
+        url: str,
+        user_agent: Optional[str] = None
+    ) -> Tuple[Optional[str], Optional[str], Optional[Page]]:
+        """
+        Render a page and return HTML content and keep page open for screenshots.
+        
+        Args:
+            url: URL to render
+            user_agent: Optional custom user agent
+            
+        Returns:
+            Tuple of (html_content, final_url, page) or (None, None, None) on error
+            Note: Caller is responsible for closing the page!
+        """
+        if not self._browser:
+            await self.start()
+        
+        page: Optional[Page] = None
+        
+        try:
+            # Create new page context
+            context = await self._browser.new_context(
+                user_agent=user_agent or DEFAULT_USER_AGENT,
+                viewport={"width": 1920, "height": 1080},
+                ignore_https_errors=True,
+            )
+            
+            page = await context.new_page()
+            
+            # Navigate to the URL
+            self.logger.debug(f"Rendering: {url}")
+            response = await page.goto(
+                url,
+                wait_until=self.wait_until,
+                timeout=self.timeout
+            )
+            
+            if not response:
+                self.logger.warning(f"No response for {url}")
+                if page:
+                    await page.close()
+                return None, None, None
+            
+            if response.status >= 400:
+                self.logger.warning(f"HTTP {response.status} for {url}")
+                if page:
+                    await page.close()
+                return None, None, None
+            
+            # Wait for any additional dynamic content
+            await asyncio.sleep(1)
+            
+            # Get the final URL (after redirects)
+            final_url = page.url
+            
+            # Get the rendered HTML content
+            html_content = await page.content()
+            
+            self.logger.debug(f"Successfully rendered: {final_url}")
+            
+            # Return page open for screenshots
+            return html_content, final_url, page
+            
+        except PlaywrightTimeout:
+            self.logger.warning(f"Timeout rendering {url}")
+            if page:
+                await page.close()
+            return None, None, None
+        except Exception as e:
+            self.logger.error(f"Error rendering {url}: {e}")
+            if page:
+                await page.close()
+            return None, None, None
+    
     async def __aenter__(self):
         """Async context manager entry."""
         await self.start()

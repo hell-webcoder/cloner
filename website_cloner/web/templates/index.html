@@ -9,8 +9,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>🌐 Website Cloner</h1>
-            <p class="subtitle">Clone websites for offline viewing</p>
+            <h1>🌐 Website Cloner Pro</h1>
+            <p class="subtitle">Clone websites and extract UI components for offline viewing</p>
         </header>
 
         <main>
@@ -51,6 +51,54 @@
                         </label>
                     </div>
                     
+                    <h3 class="section-title">🔍 UI Analysis Options</h3>
+                    
+                    <div class="form-group checkbox">
+                        <label>
+                            <input type="checkbox" id="fullAnalysis" name="fullAnalysis">
+                            <strong>Full Analysis</strong> - Enable all features below
+                        </label>
+                    </div>
+                    
+                    <div class="form-row analysis-options">
+                        <div class="form-group checkbox">
+                            <label>
+                                <input type="checkbox" id="captureScreenshots" name="captureScreenshots">
+                                📸 Screenshots
+                            </label>
+                        </div>
+                        
+                        <div class="form-group checkbox">
+                            <label>
+                                <input type="checkbox" id="extractUI" name="extractUI">
+                                🎨 UI Extraction
+                            </label>
+                        </div>
+                        
+                        <div class="form-group checkbox">
+                            <label>
+                                <input type="checkbox" id="analyzeAccessibility" name="analyzeAccessibility">
+                                ♿ Accessibility
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row analysis-options">
+                        <div class="form-group checkbox">
+                            <label>
+                                <input type="checkbox" id="analyzeSEO" name="analyzeSEO">
+                                🔎 SEO Analysis
+                            </label>
+                        </div>
+                        
+                        <div class="form-group checkbox">
+                            <label>
+                                <input type="checkbox" id="analyzePerformance" name="analyzePerformance">
+                                ⚡ Performance
+                            </label>
+                        </div>
+                    </div>
+                    
                     <button type="submit" id="submitBtn" class="btn-primary">
                         <span class="btn-text">Start Cloning</span>
                         <span class="btn-loading" style="display: none;">Starting...</span>
@@ -67,13 +115,21 @@
         </main>
 
         <footer>
-            <p>Website Cloner v1.0 - Use responsibly and respect website terms of service.</p>
+            <p>Website Cloner Pro v2.0 - Use responsibly and respect website terms of service.</p>
         </footer>
     </div>
 
     <script>
         const API_BASE = '';
         let activePolls = new Map();
+        
+        // Full analysis toggle
+        document.getElementById('fullAnalysis').addEventListener('change', (e) => {
+            const checkboxes = ['captureScreenshots', 'extractUI', 'analyzeAccessibility', 'analyzeSEO', 'analyzePerformance'];
+            checkboxes.forEach(id => {
+                document.getElementById(id).checked = e.target.checked;
+            });
+        });
 
         // Form submission
         document.getElementById('cloneForm').addEventListener('submit', async (e) => {
@@ -95,7 +151,13 @@
                     maxDepth: parseInt(document.getElementById('maxDepth').value),
                     delay: parseFloat(document.getElementById('delay').value),
                     outputDir: document.getElementById('outputDir').value,
-                    respectRobots: document.getElementById('respectRobots').checked
+                    respectRobots: document.getElementById('respectRobots').checked,
+                    fullAnalysis: document.getElementById('fullAnalysis').checked,
+                    captureScreenshots: document.getElementById('captureScreenshots').checked,
+                    extractUI: document.getElementById('extractUI').checked,
+                    analyzeAccessibility: document.getElementById('analyzeAccessibility').checked,
+                    analyzeSEO: document.getElementById('analyzeSEO').checked,
+                    analyzePerformance: document.getElementById('analyzePerformance').checked
                 };
                 
                 const response = await fetch(`${API_BASE}/api/clone`, {
@@ -188,6 +250,29 @@
             const progress = job.progress || 0;
             const duration = formatDuration(job.started_at, job.completed_at);
             
+            // Build UI analysis info if available
+            let analysisHtml = '';
+            if (job.ui_analysis && Object.keys(job.ui_analysis).length > 0) {
+                const analysis = job.ui_analysis;
+                let analysisParts = [];
+                if (analysis.accessibility_score) {
+                    analysisParts.push(`♿ A11y: ${analysis.accessibility_score}`);
+                }
+                if (analysis.seo_score) {
+                    analysisParts.push(`🔎 SEO: ${analysis.seo_score}`);
+                }
+                if (analysis.performance_score) {
+                    analysisParts.push(`⚡ Perf: ${analysis.performance_score}`);
+                }
+                if (analysisParts.length > 0) {
+                    analysisHtml = `<div class="job-analysis">${analysisParts.join(' | ')}</div>`;
+                }
+            }
+            
+            // Screenshots count
+            const screenshotsInfo = job.screenshots_captured > 0 ? 
+                `<span>📸 Screenshots: ${job.screenshots_captured}</span>` : '';
+            
             return `
                 <div class="job-card" id="job-${job.id}" data-status="${job.status}">
                     <div class="job-header">
@@ -203,8 +288,10 @@
                     <div class="job-details">
                         <span>📄 Pages: ${job.pages_crawled}</span>
                         <span>📦 Assets: ${job.assets_downloaded}</span>
+                        ${screenshotsInfo}
                         <span>⏱️ ${duration}</span>
                     </div>
+                    ${analysisHtml}
                     <div class="job-message">${escapeHtml(job.message || '')}</div>
                     <div class="job-actions">
                         ${job.status === 'running' || job.status === 'starting' ? 

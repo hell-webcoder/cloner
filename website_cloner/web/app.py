@@ -58,6 +58,15 @@ def create_app():
             respect_robots = data.get('respectRobots', True)
             output_dir = data.get('outputDir', './cloned')
             
+            # UI extraction options
+            extract_ui = data.get('extractUI', False)
+            capture_screenshots = data.get('captureScreenshots', False)
+            analyze_accessibility = data.get('analyzeAccessibility', False)
+            analyze_seo = data.get('analyzeSEO', False)
+            analyze_performance = data.get('analyzePerformance', False)
+            full_analysis = data.get('fullAnalysis', False)
+            viewports = data.get('viewports', 'mobile,tablet,desktop')
+            
             # Validate parameters
             if max_pages < 1 or max_pages > 10000:
                 return jsonify({'error': 'Max pages must be between 1 and 10000'}), 400
@@ -79,17 +88,32 @@ def create_app():
                 'progress': 0,
                 'pages_crawled': 0,
                 'assets_downloaded': 0,
+                'screenshots_captured': 0,
                 'errors': [],
                 'output_dir': os.path.abspath(output_dir),
                 'started_at': time.time(),
                 'completed_at': None,
-                'message': 'Initializing...'
+                'message': 'Initializing...',
+                'ui_analysis': {},
+                'features': {
+                    'extract_ui': extract_ui or full_analysis,
+                    'screenshots': capture_screenshots or full_analysis,
+                    'accessibility': analyze_accessibility or full_analysis,
+                    'seo': analyze_seo or full_analysis,
+                    'performance': analyze_performance or full_analysis
+                }
             }
             
             # Start clone job in background thread
             thread = threading.Thread(
                 target=_run_clone_job,
-                args=(app, job_id, url, output_dir, max_pages, max_depth, delay, respect_robots),
+                args=(app, job_id, url, output_dir, max_pages, max_depth, delay, 
+                      respect_robots, extract_ui or full_analysis, 
+                      capture_screenshots or full_analysis, 
+                      analyze_accessibility or full_analysis,
+                      analyze_seo or full_analysis, 
+                      analyze_performance or full_analysis,
+                      viewports.split(',') if viewports else None),
                 daemon=True
             )
             thread.start()
@@ -141,7 +165,12 @@ def create_app():
 
 def _run_clone_job(app, job_id: str, url: str, output_dir: str,
                    max_pages: int, max_depth: int, delay: float,
-                   respect_robots: bool):
+                   respect_robots: bool, extract_ui: bool = False,
+                   capture_screenshots: bool = False,
+                   analyze_accessibility: bool = False,
+                   analyze_seo: bool = False,
+                   analyze_performance: bool = False,
+                   viewports: list = None):
     """Run a clone job in a background thread."""
     # Import here to avoid circular imports
     from ..crawler import WebsiteCrawler
@@ -152,7 +181,7 @@ def _run_clone_job(app, job_id: str, url: str, output_dir: str,
         job['status'] = 'running'
         job['message'] = 'Creating crawler...'
         
-        # Create crawler
+        # Create crawler with UI extraction options
         crawler = WebsiteCrawler(
             url=url,
             output_dir=output_dir,
@@ -162,7 +191,13 @@ def _run_clone_job(app, job_id: str, url: str, output_dir: str,
             respect_robots=respect_robots,
             timeout=30000,
             concurrency=10,
-            headless=True
+            headless=True,
+            extract_ui=extract_ui,
+            capture_screenshots=capture_screenshots,
+            analyze_accessibility=analyze_accessibility,
+            analyze_seo=analyze_seo,
+            analyze_performance=analyze_performance,
+            viewports=viewports
         )
         
         # Store crawler reference for potential cancellation
@@ -186,8 +221,15 @@ def _run_clone_job(app, job_id: str, url: str, output_dir: str,
             job['status'] = 'completed'
             job['pages_crawled'] = result.pages_crawled
             job['assets_downloaded'] = result.assets_downloaded
+            job['screenshots_captured'] = result.screenshots_captured
             job['errors'] = result.errors[:100]  # Limit errors stored
-            job['message'] = f'Completed: {result.pages_crawled} pages, {result.assets_downloaded} assets'
+            job['ui_analysis'] = result.ui_analysis
+            
+            # Build completion message
+            msg_parts = [f'{result.pages_crawled} pages', f'{result.assets_downloaded} assets']
+            if result.screenshots_captured > 0:
+                msg_parts.append(f'{result.screenshots_captured} screenshots')
+            job['message'] = f'Completed: {", ".join(msg_parts)}'
             job['completed_at'] = time.time()
             
         finally:
