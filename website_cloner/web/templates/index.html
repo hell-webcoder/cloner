@@ -268,9 +268,23 @@
         const fullAnalysisCheckbox = document.getElementById('fullAnalysis');
         const featureCheckboxes = ['captureScreenshots', 'extractUI', 'analyzeAccessibility', 'analyzeSEO', 'analyzePerformance'];
 
+        // Function to update feature card visual state for browser compatibility
+        function updateFeatureCardState(id) {
+            const checkbox = document.getElementById(id);
+            const card = checkbox.closest('.feature-card');
+            if (card) {
+                if (checkbox.checked) {
+                    card.classList.add('checked');
+                } else {
+                    card.classList.remove('checked');
+                }
+            }
+        }
+
         fullAnalysisCheckbox.addEventListener('change', (e) => {
             featureCheckboxes.forEach(id => {
                 document.getElementById(id).checked = e.target.checked;
+                updateFeatureCardState(id);
             });
         });
 
@@ -279,6 +293,7 @@
             document.getElementById(id).addEventListener('change', () => {
                 const allChecked = featureCheckboxes.every(id => document.getElementById(id).checked);
                 fullAnalysisCheckbox.checked = allChecked;
+                updateFeatureCardState(id);
             });
         });
 
@@ -636,10 +651,11 @@
                 .then(res => res.json())
                 .then(job => {
                     if (job.errors && job.errors.length > 0) {
-                        const errorList = job.errors.map(e => 
+                        const errorList = job.errors.slice(0, 10).map(e => 
                             `• ${e.type || 'Error'}: ${e.error || e.url || 'Unknown'}`
                         ).join('\n');
-                        alert(`Errors for job:\n\n${errorList}`);
+                        const moreErrors = job.errors.length > 10 ? `\n\n... and ${job.errors.length - 10} more errors` : '';
+                        showToast(`Errors (${job.errors.length} total):\n${errorList.substring(0, 100)}${errorList.length > 100 ? '...' : ''}`, 'error');
                     }
                 })
                 .catch(err => showToast('Failed to load errors', 'error'));
@@ -729,7 +745,13 @@
         // Add keyboard shortcut for submit (Ctrl+Enter)
         document.getElementById('url').addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                document.getElementById('cloneForm').requestSubmit();
+                const form = document.getElementById('cloneForm');
+                // Use requestSubmit if available, otherwise dispatch event
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                } else {
+                    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
             }
         });
     </script>

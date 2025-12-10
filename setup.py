@@ -32,11 +32,11 @@ setup(
     name='website-cloner',
     version='2.0.0',
     author='Website Cloner Team',
-    author_email='contact@websitecloner.dev',
+    author_email='',
     description='A modern Python-based website cloning and UI extraction tool',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/website-cloner/cloner',
+    url='https://github.com/hell-webcoder/cloner',
     packages=find_packages(),
     include_package_data=True,
     package_data={

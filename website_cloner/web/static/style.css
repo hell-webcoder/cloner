@@ -569,6 +569,8 @@ input:focus {
     color: white;
 }
 
+/* Feature card checked state - using class for better browser compatibility */
+.feature-card.checked,
 .feature-card:has(input:checked) {
     border-color: var(--color-primary);
     background: var(--color-primary-bg);

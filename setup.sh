@@ -55,7 +55,7 @@ if command -v python3 &> /dev/null; then
     PYTHON_MAJOR=$(echo "$PYTHON_VERSION" | cut -d'.' -f1)
     PYTHON_MINOR=$(echo "$PYTHON_VERSION" | cut -d'.' -f2)
     
-    if [ "$PYTHON_MAJOR" -ge 3 ] && [ "$PYTHON_MINOR" -ge 8 ]; then
+    if [ "$PYTHON_MAJOR" -gt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -ge 8 ]); then
         print_success "Python $PYTHON_VERSION found"
     else
         print_error "Python 3.8 or higher is required. Found: $PYTHON_VERSION"
